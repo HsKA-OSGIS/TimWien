@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+	<html>
+		<head>
+			<title>Umkreissuche</title>
+			<link type="text/css" href="style.css" rel="stylesheet"/>
+			
+			<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+			
+			<script type="text/javascript" src="http://www.openlayers.org/api/OpenLayers.js"></script>
+			<script type="text/javascript" src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
+		
+			<script type="text/javascript">
+		
+			// globale Variablen
+			var map;
+			var vectorLayer;
+			
+			//Abfrage ob Koordinaten vorhanden sind
+			function chkCoordinates () {
+				if (document.Coordinates.plat.value == "") {
+				alert("Setze Position in der Karte!");
+				document.Coordinates.plat.focus();
+				return false;
+				}
+				if (document.Coordinates.plon.value == "") {
+				alert("Setze Position in der Karte!");
+				document.Coordinates.plon.focus();
+				return false;
+				}
+				
+				var url = 'radialsearch.php';
+
+				OpenLayers.Request.GET({
+
+					//----------------------------------------------
+					//	true: der Transfer laeuft im Hintergrund
+					//	false: der Browser blockiert bis zur Antwort
+					//----------------------------------------------
+
+					async: true,
+
+					url: url,
+						
+					params: 
+					{
+						plon: document.getElementById('lon').value,
+						plat: document.getElementById('lat').value,
+						category: document.getElementById('category').value,
+						radius: document.getElementById('radius').value,
+					},
+
+					//----------------------------------------------
+					//	Erfolg: tausche den Marker aus
+					//----------------------------------------------
+
+					success: function(request) {
+
+						// alert ('success!');
+						// alert (request.responseText);
+
+						// Transformation Google -> WGS84
+						var geojson = new OpenLayers.Format.GeoJSON({
+							'internalProjection': map.getProjectionObject(), //Google
+							'externalProjection': map.displayProjection, //WGS84
+						});
+
+						// Alte (Ergebnis-)Punkte entfernen
+						vectorLayer.removeAllFeatures();
+						
+						// Neue (Ergebnis-)Punkte hinzufügen
+						vectorLayer.addFeatures(geojson.read(request.responseText));
+
+						//alert(vectorLayer.features);
+						//alert(vectorLayer.features.length);
+						
+						// wenn keine (Ergebnis-)Punkte gefunden -> Fehlermeldung, sonst zu (Ergebnis-)Punkten zoomen
+						if (vectorLayer.features.length == 0)
+							alert("Kein Ergebnis gefunden!");
+						else
+							map.zoomToExtent(vectorLayer.getDataExtent());
+
+					},
+
+					//----------------------------------------------------
+					//	Misserfolg: entferne den Marker
+					//----------------------------------------------------
+
+					failure: function(request) {
+
+						// alert ('failure!');
+
+						//--------------------------------------------
+						//	Zeige Meldung des Servers bei Fehler
+						//--------------------------------------------
+
+						alert ('Fehler:\n' + request.responseText);
+					}
+				});
+			}
+			
+			window.onload = function () {
+				
+				//----------------------------------------------------------------------
+				//	Karte - der Name ('map') muss mit der id des <div> uebereinstimmen.
+				//----------------------------------------------------------------------
+				map = new OpenLayers.Map ('map');
+			
+				//----------------------------------------------------------------------
+				//	Default-Koordinatensystem fuer alle Controls
+				//----------------------------------------------------------------------
+				map.displayProjection = new OpenLayers.Projection('EPSG:4326');
+
+				
+				//----------------------------------------------------------------------
+				//	Steuerelemente
+				//----------------------------------------------------------------------
+				map.addControl (new OpenLayers.Control.ScaleLine());
+
+				//----------------------------------------------------------------------
+				//	Kartenlayer
+				//----------------------------------------------------------------------
+				map.addLayer (new OpenLayers.Layer.OSM.Mapnik('Mapnik',{attribution:"&copy; <a href='http://www.openstreetmap.org'>OpenStreetMap</a> contributors </br> Teilweise basierend auf <a href='http://www.netzwolf.info/kartografie/openlayers/'>Netzwolf</a>"}));
+			
+				//	Vector Layer (mit Ergebnis aus DB)
+				var myStyle = new OpenLayers.Style({
+				    externalGraphic: "images/Marker2.png", graphicWidth: 30, graphicHeight: 40,
+				}); 
+				
+				var myStyles = new OpenLayers.StyleMap(myStyle); 
+				
+				vectorLayer = new OpenLayers.Layer.Vector("Vector Layer", {styleMap: myStyles}); 
+				map.addLayer(vectorLayer);
+				
+				//----------------------------------------------------------------------
+				//	Markerlayer
+				//----------------------------------------------------------------------
+				var markerLayer = new OpenLayers.Layer.Markers('Markierung');
+				map.addLayer (markerLayer);
+				
+				//----------------------------------------------------------------------
+				//	Clickhandler
+				//----------------------------------------------------------------------
+
+				map.addControl (new OpenLayers.Control ({
+
+					draw: function (px) {
+						this.handler = new OpenLayers.Handler.Click (this, {click: this.onclick}, {});
+						this.activate();
+					
+						map.div.style.cursor='pointer';
+					},
+
+					onclick: function (ev) {
+
+						// Punkt in Kartenprojektion
+						var mapLonLat = map.getLonLatFromViewPortPx(ev.xy);
+
+						//------------------------------------------------------
+						//	Position in WGS84
+						//------------------------------------------------------
+						var pointLonLat = mapLonLat.clone()
+							.transform(
+								map.getProjectionObject(), // Google
+								map.displayProjection // WGS84
+							);
+
+						document.getElementById('lat').value = pointLonLat.lat;
+						document.getElementById('lon').value = pointLonLat.lon;
+
+						//------------------------------------------------------
+						//	entferne alte[n] Marker
+						//------------------------------------------------------
+
+						markerLayer.clearMarkers();
+
+						//------------------------------------------------------
+						//	setze neuen Marker mit "busy"-Graphik
+						//------------------------------------------------------
+						//@@@@@	Bitte trage eine eigene Graphik ein!
+						//------------------------------------------------------
+
+						var icon = new OpenLayers.Icon (
+							'images/Marker.png',
+							{w:31, h:40},
+							{x:-15, y:-40}
+						);
+						var marker = new OpenLayers.Marker (mapLonLat, icon);
+						markerLayer.addMarker(marker);
+					}
+				}));
+
+
+				//----------------------------------------------------------------------------
+				//	Wenn kein Permalink genutzt, stelle bestimmten Bereich dar
+				//----------------------------------------------------------------------------
+				if (!map.getCenter()) {
+					map.zoomToExtent(new OpenLayers.Bounds(16.2000,48.2784,16.5502,48.1352).
+						transform(map.displayProjection, map.getProjectionObject()));
+				}
+			};
+		</script>
+		
+		</head>
+
+
+
+		<body>
+			<header> 
+			<h1>Touristeninformation Wien </h1>
+			<h2>Umkreissuche</h2>
+			</header>
+			<div class="content">
+
+				<div class="btnBarTop">
+					<a href="map.html">
+					<img src="btn/standart.png">
+					</a>
+					<a href="umkreis.html">
+					<img src="btn/umkreis.png">
+					</a>
+			     </div>
+     
+				<div class="detailDescription2">
+    
+			    <form name="Coordinates">
+		  
+	<pre>
+	
+ 1. Setze Position in der Karte </br>
+ Geographische Breite (Latitude):
+<input id="lat" name="plat" readonly/>
+
+Geographische Länge (Longitude):
+<input id="lon" name="plon" readonly/>	
+</br>
+ 2. Radius:</br>
+ <select id="radius" name="radius" size="1">
+	<option value="0.2">200 m</option>
+	<option value="0.5">500 m</option>
+	<option value="1.0">1000 m</option>
+ </select>
+</br></br>
+ 3. Kategorie: </br>
+ <select id="category" name="category" size="1">
+	<option value="adventmarkt">Adventsmarkt</option>
+	<option value="badestellen">Badestellen</option>
+	<option value="bars">Bars</option>
+	<option value="citybike">City Bike Standorte</option>
+ 	<option value="clubs">Clubs</option>
+	<option value="grillplaetze">Grillplätze</option>
+	<option value="hotels1">Hotels 0 - 30 €</option>
+	<option value="hotels2">Hotels 30 - 100 €</option>
+	<option value="hotels3">Hotels > 100 €</option>
+	<option value="malls">Malls</option>
+	<option value="restaurants">Restaurants</option>
+	<option value="sights">Sehenswürdigkeiten</option>
+	<option value="toiletten">Toiletten</option>
+	<option value="ubahnhalt">U-Bahn Haltestellen</option>
+	<option value="wlan">WLAN Standorte</option>
+ </select>
+ </br>			
+	<input type="button" value="Senden" Style="width:100px" onclick="chkCoordinates()">
+
+	</pre>
+ </form>
+    
+			    </div>     
+ <br> <br> <br>
+				<div id="map" class="detailMap2">
+    
+			    </div>
+
+			</div>
+
+			<div class="footer">
+			<ul>
+			    <li>
+			    <a href="index.html">Home | </a>
+			    <a href="about.html">About | </a>
+			    <a href="contact.html">Contact | </a>
+			    <a href="report.html">Report</a>
+			    </li>
+			</ul>
+			</div>
+			 
+		</body>
+	</html>

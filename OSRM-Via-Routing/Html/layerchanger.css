@@ -1,0 +1,85 @@
+/*------------------------------------------------------------------------------
+//	$Id: layerchanger.css,v 1.8 2014/11/22 15:13:29 wolf Exp wolf $
+//----------------------------------------------------------------------------*/
+
+.olControlLayerChanger {
+
+	right:	0px;
+	top:	25px;
+	
+}
+
+.olControlLayerChanger table {
+
+	font-family: sans-serif;
+	font-size: smaller;
+	
+}
+
+.olControlLayerChanger th, .olControlLayerChanger td {
+
+	border: 1px gray dotted;
+}
+
+.olControlLayerChanger td.autoZoom,
+.olControlLayerChanger td.opacityChanger {
+
+	white-space: nowrap;
+}
+
+.olControlLayerChanger .layersDiv {
+
+	background-color: #dddddd;
+	border: 2px ridge gray;
+	
+}
+
+.olControlLayerChanger .maximizeDiv, .olControlLayerChanger .minimizeDiv {
+
+	top:	2px;
+	right:	0px;
+
+}
+
+.olControlLayerChanger th {
+
+	text-align: left;
+	autoScroll: true;
+}
+
+.olControlLayerChanger input, .olControlLayerChanger button {
+
+	cursor: pointer;
+}
+
+.olControlLayerChanger th.hidden:before {
+
+	content: '\25B6\00a0';	/* Dreieck */
+}
+
+.olControlLayerChanger th.visible:before {
+
+	content: '\25BC\00a0';	/* Dreieck */
+}
+
+.olControlLayerChanger a {
+
+	text-decoration: none;
+	color: gray;
+	cursor: default;
+}
+
+.olControlLayerChanger a:before {
+
+	content: '\2197\00a0';	/* Dreieck */
+}
+
+.olControlLayerChanger a[href^=http] {
+
+	color: blue;
+	cursor: pointer;
+}
+
+/*------------------------------------------------------------------------------
+//	$Id: layerchanger.css,v 1.8 2014/11/22 15:13:29 wolf Exp wolf $
+//----------------------------------------------------------------------------*/

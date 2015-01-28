@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<html>
+<head>
+<title>Map View</title>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+
+<script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+<script src="http://code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+
+<script type="text/javascript" src="javascript/OpenLayers-2.13.1/OpenLayers.js"></script>
+<script type="text/javascript" src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
+<!--<script type="text/javascript" src="javascript/OpenStreetMap.js"></script>-->
+<script type="text/javascript" src="javascript/osrm_viarouting.js"></script>
+<script type="text/javascript" src="javascript/searchbox.js"></script>
+<script type="text/javascript" src="javascript/layerchanger.js"></script>
+<link rel="stylesheet" type="text/css" href="layerchanger.css" />
+<script type="text/javascript" src="javascript/nominatim_translation_de.js"></script>
+<link type="text/css" href="style.css" rel="stylesheet"/>
+<script>
+OpenLayers.ProxyHost = "/cgi-bin/proxy.cgi?url=";//Proxy-Variable definieren
+
+
+window.onload = function () {
+
+	//----------------------------------------------------------------------------
+	//	Karte - der Name ('map') muss mit der id des <div> uebereinstimmen.
+	//----------------------------------------------------------------------------
+	var options;
+	var extent = new OpenLayers.Bounds(16.2000,48.2784,16.5502,48.1352);
+	options = {
+		projection: new OpenLayers.Projection("EPSG:4326"),
+		units: "m",
+		numZoomLevels: 18,
+		maxResolution: 156543.0339,
+		maxExtent: new OpenLayers.Bounds(-20037508,-20037508,20037508,20037508)  // Google - Projektion (ESPG:900913)	
+		}; 
+		
+	
+
+	var map = new OpenLayers.Map('map',options);         
+
+	//----------------------------------------------------------------------------
+	//	Default-Koordinatensystem fuer alle Controls
+	//----------------------------------------------------------------------------
+
+	map.displayProjection = new OpenLayers.Projection('EPSG:4326');           
+
+	
+	
+
+			
+	var scaleLine = new OpenLayers.Control.ScaleLine();
+	map.addControl(scaleLine);
+	
+	var navi = new OpenLayers.Control.Navigation();
+	
+	
+
+	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+	//@
+	//@	Installiere das Routing-Control
+	//@
+	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+	map.addControl (new OpenLayers.Control.OSRMViaRouting());
+
+	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+	//@
+	//@	Installiere das LayerChanger-Control
+	//@
+	//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+	map.addControl (new OpenLayers.Control.LayerChanger());
+	
+	//Attributierung
+	
+	map.addControl (new OpenLayers.Control.Attribution());
+	
+	
+	//Maßstab
+	map.addControl(new OpenLayers.Control.ScaleLine());
+	
+	//----------------------------------------------------------------------------
+	//	Searchbox
+	//----------------------------------------------------------------------------
+	
+	
+
+	map.addControl (new OpenLayers.Control.SearchBox({			
+		autoClose: false,						
+		defaultLimit: 50,						
+		minDistance: 50,						
+		resultMinZoom: 16						
+	}));
+	
+
+	
+	//----------------------------------------------------------------------------
+	//	Kartenlayer
+	//----------------------------------------------------------------------------
+
+	map.addLayer (new OpenLayers.Layer.OSM.Mapnik('Mapnik',{attribution:"&copy; <a href='http://www.openstreetmap.org'>OpenStreetMap</a> contributors </br> Routing/Suche basierend auf <a href='http://www.netzwolf.info/kartografie/openlayers/'>Netzwolf</a>"}));
+	
+	  
+	
+	
+	var wanderwege;
+	var spazierwege;
+	var sehenswuerdigkeiten;
+	var silvesterpfad;
+	var adventmarkt;
+	var citybike;
+	var ubahn;
+	
+	var themenradwege;
+	var adventmarkt;
+	var hotel_kat_1;
+	var hotel_kat_2;
+	var hotel_kat_3;
+	var ubahn_punkt;
+	
+	
+	
+	bars = new OpenLayers.Layer.WMS(
+		"Bars", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:bars", transparent: 'true'}, // Layer-Variable, transparenz
+		{singleTile: true, isBaseLayer: false} // kein BaseLayer
+	);
+	malls = new OpenLayers.Layer.WMS(
+		"Malls", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:malls", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	clubs = new OpenLayers.Layer.WMS(
+		"Clubs", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:clubs", transparent: 'true'}, // Layer-Variable, transparenz
+		{singleTile: true, isBaseLayer: false} // kein BaseLayer
+		
+	);
+	restaurants = new OpenLayers.Layer.WMS(
+		"Restaurants", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:restaurants", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	wlan = new OpenLayers.Layer.WMS(
+		"Wlan", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:wlan", transparent: 'true'}, // Layer-Variable, transparenz
+		{singleTile: true, isBaseLayer: false} // kein BaseLayer
+		
+	);
+	grillplatz = new OpenLayers.Layer.WMS(
+		"Grillplaetze", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:grillplaetze", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	wanderwege = new OpenLayers.Layer.WMS(
+		"Wanderwege", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:spaziergaenge", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	/*group_hotels = new OpenLayers.Layer.WMS(
+		"hotels", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:hotels1, Wien_v2:hotels2, Wien_v2:hotels3", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);*/
+	spazierwege = new OpenLayers.Layer.WMS(
+		"Spazierwege", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:spaziergaenge", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	sehenswuerdigkeiten = new OpenLayers.Layer.WMS(
+		"Sehenswuerdigkeiten", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:sights", transparent: 'true'}, // Layer-Variable, transparenz
+		{singleTile: true, isBaseLayer: false} // kein BaseLayer
+		
+	);
+	silvesterpfad = new OpenLayers.Layer.WMS(
+		"Silvesterpfad", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:silvespfadlinie", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	adventmarkt = new OpenLayers.Layer.WMS(
+		"Adventmarkt", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:adventmarkt", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	citybike = new OpenLayers.Layer.WMS(
+		"Citybike", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:citybike", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	ubahn = new OpenLayers.Layer.WMS(
+		"U-Bahn", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:ubahnlinien",  transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	
+	ubahn_punkt = new OpenLayers.Layer.WMS(
+		"U-Bahn Haltestellen", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:ubahnhalt",  transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	
+	wc = new OpenLayers.Layer.WMS(
+		"WC", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:toiletten", transparent: 'true'},
+		{isBaseLayer: false} // kein BaseLayer
+		
+		
+	);
+
+	hotel_kat_1 = new OpenLayers.Layer.WMS(
+		"Hotels 0-30€", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:hotels1", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	hotel_kat_2 = new OpenLayers.Layer.WMS(
+		"Hotels 30-100€", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:hotels2", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	hotel_kat_3 = new OpenLayers.Layer.WMS(
+		"Hotels >100€", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:hotels3", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	themenradwege = new OpenLayers.Layer.WMS(
+		"Themenradwege", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:radwege", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	badestellen = new OpenLayers.Layer.WMS(
+		"Badestellen", // Titel
+		"http://localhost:8082/geoserver/Wien_v2/wms", // Pfad zum geoserver 
+		{layers: "Wien_v2:badestellen", transparent: 'true'}, // Layer-Variable, transparenz
+		{isBaseLayer: false} // kein BaseLayer
+		
+	);
+	
+	
+	// Layer auf die Karte adden
+	
+	
+	map.addLayer(wc);
+	map.addLayer(themenradwege);
+	map.addLayer(wanderwege);
+	map.addLayer(spazierwege);
+	map.addLayer(silvesterpfad);
+	map.addLayer(ubahn);
+	map.addLayer(ubahn_punkt);
+	map.addLayer(bars);
+	map.addLayer(malls);
+	map.addLayer(clubs);
+	map.addLayer(restaurants);
+	map.addLayer(wlan);
+	map.addLayer(grillplatz);
+	map.addLayer(sehenswuerdigkeiten);
+	map.addLayer(badestellen);
+	map.addLayer(adventmarkt);
+	map.addLayer(citybike);
+	map.addLayer(hotel_kat_1);
+	map.addLayer(hotel_kat_2);
+	map.addLayer(hotel_kat_3);
+	//map.addLayer(group_hotels);
+	
+	
+	
+	
+	// Ausblenden bestimmter Layer beim Start
+	ubahn.setVisibility(false);
+	wanderwege.setVisibility(false);
+	themenradwege.setVisibility(false);
+	adventmarkt.setVisibility(false);
+	wlan.setVisibility(false);
+	grillplatz.setVisibility(false);
+	citybike.setVisibility(false);
+	hotel_kat_3.setVisibility(false);
+	hotel_kat_2.setVisibility(false);
+	hotel_kat_1.setVisibility(false);
+	sehenswuerdigkeiten.setVisibility(false);
+	wc.setVisibility(false);
+	
+	//----------------------------------------------------------------------------
+	//	Erstellung der Popups (hotels,wc (heatmap) fehlen, badestellen sind draußen)
+	//----------------------------------------------------------------------------
+	
+	//PopUp Window für bars erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [bars], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name']+"</b></u>"+"<br>"+attributes['adresse']+"<br><br><a href="+attributes['link']+" target='_blank'>Website</a></div>"; // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	//PopUp Window für hotel1 erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [hotel_kat_1], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name']+"</b></u>"+"<br>"+attributes['adresse']+"<br><br><a href="+attributes['link']+" target='_blank'>Website</a></div>"; // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	//PopUp Window für hotel2 erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [hotel_kat_2], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name']+"</b></u>"+"<br>"+attributes['adresse']+"<br><br><a href="+attributes['link']+" target='_blank'>Website</a></div>"; // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	//PopUp Window für hotel3 erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [hotel_kat_3], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name']+"</b></u>"+"<br>"+attributes['adresse']+"<br><br><a href="+attributes['link']+" target='_blank'>Website</a></div>"; // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	//PopUp Window für restaurantes erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [restaurants], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name']+"</b></u>"+"<br>"+attributes['adresse']+"<br><br><a href="+attributes['link']+" target='_blank'>Website</a></div>"; // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	//PopUp Window für ubahn-halt erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [ubahn_punkt], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name']+"</b></u>"+"<br>"+attributes['hlinien'] // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	//PopUp Window für wlan erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [wlan], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name']+"</b></u>"+"<br>"+attributes['adresse']+"<br><br><a href="+attributes['weitere_in']+" target='_blank'>Info</a></div>"; // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	//PopUp Window für malls erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [malls], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name']+"</b></u>"+"<br>"+attributes['adresse']+"<br><br><a href="+attributes['link']+" target='_blank'>Website</a></div>"; // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	//PopUp Window für sehenswuerdigkeiten erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [sehenswuerdigkeiten], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name']+"</b></u>"+"<br>"+attributes['adresse']+"<br><br><a href="+attributes['weitere_in']+" target='_blank'>Website</a></div>"; // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	//PopUp Window für clubs erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [clubs], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name']+"</b></u>"+"<br>"+attributes['adresse']+"<br><br><a href="+attributes['link']+" target='_blank'>Website</a></div>"; // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	/*//PopUp Window für badestellen erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [badestellen], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name'] // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	
+	//PopUp Window für grillplatz erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [grillplatz], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>Grillplatz</b></u>"+"<br>Lage: "+attributes['lage']+"<br><br><a href="+attributes['weblinks1']+" target='_blank'>Info</a></div>"; // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	//PopUp Window für adventmarkt erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [adventmarkt], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b><u>"+attributes['name']+"</b></u>"+"<br>"+attributes['adresse']+"<br><br>Öffnungszeiten: "+"<br>"+attributes['oeffnungsz']+"<br><br><a href="+attributes['weblink1']+" target='_blank'>Website</a></div>"; // Zusammensetzen des HTML Strings
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+	//PopUp Window für citybike erstellen
+	var info = new OpenLayers.Control.WMSGetFeatureInfo({
+            url: 'http://localhost:8082/geoserver/Wien_v2/wms', // URL zur
+            title: 'Identify',
+	    infoFormat:'application/vnd.ogc.gml',
+		vendorParams:{"lang": OpenLayers.Lang.getCode()||'de'},
+		layers: [citybike], // Zu Verwendende Layer für das Popup
+            queryVisible: true,
+            eventListeners: {
+                getfeatureinfo: function(event) {
+	if(event.features.length > 0){
+		var feature = event.features[0]; // Nimmt das erste selektierte Objekt
+		var attributes = feature.attributes; // Zerlegt das Objekt in seine einzelnen Attribute um darauf zuzugreifen
+		text = "<div style='color:#662483'>"+"<b>"+attributes['name']
+                    map.addPopup(new OpenLayers.Popup.FramedCloud( // Öffnen des 
+                        "chicken", // Interne ID
+                        map.getLonLatFromPixel(event.xy), // Position des Popups auf der Karte
+                        null, // Größe des Popup kann angegeben werden
+                        text, // Text des Popups
+                        null,
+                        true // Schließenkreuz
+                    ));	
+	}
+	while (map.popups.length > 1){
+	map.removePopup(map.popups[0]);
+	}
+                }
+            }
+        });
+        map.addControl(info); // Added die Option
+        info.activate(); // Aktiviert die Option*/
+	
+
+	//----------------------------------------------------------------------------
+	//	Wenn kein Permalink genutzt, stelle bestimmten Bereich dar
+	//----------------------------------------------------------------------------
+
+	if (!map.getCenter()) map.zoomToExtent(new OpenLayers.Bounds(16.2000,48.2784,16.5502,48.1352).
+		transform(new OpenLayers.Projection("EPSG:4326"), map.getProjectionObject()));
+};
+</script>
+<style type="text/css">
+/************************************************
+*
+*	Gestaltung der Searchbox
+*
+*************************************************/
+
+
+
+
+.olControlSearchBox {
+	left: 60px;
+	top: 2px;
+}
+
+.olControlSearchBox div.busy {
+	background: url(/j/ajax-loader.gif);
+	height: 55px;
+	width: 54px;
+}
+
+.olControlSearchBox div.failure {
+	background: red;
+	color: black;
+	font-weight: bold;
+}
+
+.olControlSearchBox div.success {
+	background: white;
+	padding: 4px;
+	border: 1px solid gray;
+	border-radius: 8px;
+}
+
+.olControlSearchBox div.success.empty {
+	color: gray;
+	font-style: italic;
+}
+
+.olControlSearchBox div.success div.entry:hover {
+	background: blue;
+	color: white;
+	cursor: pointer;
+}
+
+</style>
+<script type="text/javascript" src="javascript/slidertest.js"></script> 
+</head>
+
+<body>
+<header> 
+<h1>Touristeninformation Wien </h1>
+<h2>Map Viewer</h2>
+</header>
+
+
+<script>
+var malls;
+var badestellen;
+var clubs;
+var bars;
+var restaurants;
+var wlan;
+var grillplatz;
+var wc;
+
+var opacities=[0,50,100];
+
+function opacity(value){
+	badestellen.setOpacity(value/100);
+	malls.setOpacity(value/100);
+	clubs.setOpacity(value/100);
+	bars.setOpacity(value/100);
+	restaurants.setOpacity(value/100);
+	wlan.setOpacity(value/100);
+	grillplatz.setOpacity(value/100);
+	wc.setOpacity(value/100);
+	}
+	
+</script>
+
+
+<div class="content">
+
+	<div class="btnBarTop">
+   		<a href="map.html">
+		<img src="btn/standart.png">
+   		</a>
+   		<a href="umkreis.html">
+		<img src="btn/umkreis.png">
+   		</a>
+     </div>
+	<div id="slidebox"><label for="amount">Layer Opacity Slider: </label>
+<input type="text" id="amount1" readonly style="border:0;font-size:16pt;background-color:rgba(255,255,255,0);font color="#FF0000";">
+<div id="slider" style="width:200px"></div></div> 
+    <br>
+    <div class="detailDescription">
+    
+   <b>Bedienungsanleitung</b>
+    <br><br><br>
+     
+  Aktivieren Sie das Routing im Layer-Changer: der Cursor wird nun zu einem Fadenkreuz.
+  <br>
+  
+Setzen sie mit Ctrl+Mausklick die Wegpunkte.
+<br>
+Der aktive Wegpunkt (blau markiert) kann mit „linke Pfeiltaste“ und “rechte Pfeiltaste” verschoben werden.
+<br>
+<br>
+ Neue Punkte werden jeweils nach dem aktiven Wegpunkt eingefügt.
+ <br>
+ <br>
+„Backspace“ löscht den aktiven Wegpunkt, <br><br>„Shift+Backspace“ löscht alle Wegpunkte,<br><br>
+“Esc” zoomt auf die dargestellte Route,<br><br>
+Mouseover auf die dargestellte Route zeigt die Entfernung an.
+    
+    </div>
+
+	<div id="map" class="detailMap">
+    
+    
+    
+    </div>
+
+</div>
+
+<div class="footer">
+<ul>
+    <li>
+    <a href="index.html">Home | </a>
+    <a href="about.html">About | </a>
+    <a href="contact.html">Contact | </a>
+    <a href="report.html">Report</a>
+    </li>
+</ul>
+</div>
+</body>
+</html>
