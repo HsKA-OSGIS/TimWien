@@ -1,0 +1,100 @@
+Instructions to create your own TimWien Tourist Information System
+
+
+1.) Preparations:
+
+Download the Oracle VM Virtual Box.
+You need it to create and start the Virtual machine on your computer.
+
+Download OS Geo Live.
+
+Download the project code form github. Leave the structure of the folders untouched.
+
+Download the sample data.
+
+_________________________________________________________________________________________________________
+
+
+2.) Work environment:
+
+Create the Virtual machine by clicking “new” and generating a new image in  “Orcale VM Virtual Box”. 
+Choose “use existing disk” and generate a path to OS Geo Live folder. 
+
+Create a shared folder on your computer and connetc it to the virtual machine. 
+First create a folder on your computer. 
+Open the VM Icon and choose “settings” – “shared folders” – “add shared folder” and choose the path 
+to the folder you created. Make sure you check “bind/incorporate” and “generate permanent”.
+You need it to move all the relevant data and code into the virtual machine. 
+
+Unpack the code and the sample data and move it to the shared folder on your computer. 
+Please don’t change the structure of the code folders. Copy the folders from the shared folders 
+and store it to: /var/www/html
+
+_________________________________________________________________________________________________________
+
+
+3.) Database & Geoserver:
+
+Database:
+
+Set up the database (post gis database). Here is an example how to handle it with pgAdminII
+To include the plugins you need to open the PSQL-Console and type in:
+1) sudo apt-add-repository ppa:sharpie/postgis-nightly
+2) sudo apt-get update
+3) sudo apt-get install postgresql-9.1-postgis
+
+Now you can create a new Database
+
+You also need to create an extension in postgis (in pgadmin3-> look for you database 
+-> tab Extension (right click -> new extension)
+If you use your own database, you must change the name of the database, the user and the password in the file connection.php.
+
+Settings to work with GUI (so you don’t need to use the console anymore) to import shapefiles
+
+Disable write protection (dataset is naturally protected)
+LXTerminal (taskbar on the bottom) --> sudo chmod -R 777 /usr/share/pgadmin3/plugins.d/plugins.ini   
+(Enter -> data can be edited and saved)
+
+add plugins.ini (copy/paste):
+
+; pgShapeLoader (Linux):
+;
+Title=PostGIS Shapefile and DBF loader
+Command=$$PGBINDIR/shp2pgsql-gui -U $$USERNAME -d $$DATABASE -p $$PORT -h $$HOSTNAME
+Description=Open a PostGIS ESRI Shapefile or Plain dbf loader console to the current database.
+KeyFile=$$PGBINDIR/shp2pgsql-gui
+Platform=unix
+ServerType=postgresql
+Database=Yes
+SetPassword=No
+
+
+
+Geoserver:
+Start Geoserver, load and store your data, that should be published via the WMS TimWien Tourist 
+Information System. Add a new workspace (give a name and type in the path to your folder filled with data). 
+Go to “layers” and add a new ressource, choose where you want to add the layer from, decide for a layer and publish it. 
+Then you have to set settings. As coordinate reference systems you need “EPSG:4326”, 
+compute bounding boxes from data and choose a default style for publishing.
+
+____________________________________________________________________________________________________________
+
+4.) Look at your WMS & work with it:
+
+To look on your WMS you need to start the geoserver. 
+Then search the index html page in the code folders (/var/www/html) and start it by double clicking.
+
+________________________________________________________________________________________________________
+
+
+5.) If the permission is denied in localhost, you have to change the rights:
+
+- Open console in Virtual Box
+- navigate to the folder: cd /XXX/<folder>
+- change the reading rights for a folder or file: chmod a+r <folder- or filename>
+- overview of the rights: ls -la  (third last sign in the left column should be now an r) 
+
+
+
+
+
